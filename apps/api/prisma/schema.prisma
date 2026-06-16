@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ContractKind {
+  PROXY
+  IMPLEMENTATION
+  FACTORY
+  ROUTER
+  VAULT
+  TOKEN
+  STRATEGY
+  ORACLE
+  GOVERNANCE
+  TREASURY
+  OTHER
+}
+
+enum RelationKind {
+  PROXY
+  IMPLEMENTATION
+  FACTORY
+  VAULT
+  TOKEN
+  STRATEGY
+  DEPENDS_ON
+}
+
+enum TvlSource {
+  DEFILLAMA
+  MANUAL
+  DEMO
+}
+
+model Chain {
+  id                  String     @id @default(cuid())
+  slug                String     @unique
+  name                String
+  chainId             Int        @unique
+  nativeCurrency      String
+  explorerBaseUrl     String
+  explorerAddressPath String     @default("/address/{address}")
+  createdAt           DateTime   @default(now())
+  contracts           Contract[]
+}
+
+model Protocol {
+  id              String        @id @default(cuid())
+  slug            String        @unique
+  name            String
+  description     String?
+  websiteUrl      String?
+  tvlProvider     String?
+  tvlProviderSlug String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  contracts       Contract[]
+  tvlSnapshots    TvlSnapshot[]
+}
+
+model Contract {
+  id                String             @id @default(cuid())
+  chainId           String
+  protocolId        String?
+  address           String
+  addressChecksum   String
+  name              String
+  description       String?
+  kind              ContractKind       @default(OTHER)
+  verifiedSourceUrl String?
+  repositoryUrl     String?
+  sourcePath        String?
+  abiUrl            String?
+  tvlProvider       String?
+  tvlProviderSlug   String?
+  manualTvlUsd      Float?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  chain             Chain              @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  protocol          Protocol?          @relation(fields: [protocolId], references: [id], onDelete: SetNull)
+  outgoingRelations ContractRelation[] @relation("RelationFrom")
+  incomingRelations ContractRelation[] @relation("RelationTo")
+  tvlSnapshots      TvlSnapshot[]
+
+  @@unique([chainId, address])
+  @@index([protocolId])
+  @@index([kind])
+}
+
+model ContractRelation {
+  id             String       @id @default(cuid())
+  fromContractId String
+  toContractId   String
+  kind           RelationKind
+  label          String?
+  createdAt      DateTime     @default(now())
+  fromContract   Contract     @relation("RelationFrom", fields: [fromContractId], references: [id], onDelete: Cascade)
+  toContract     Contract     @relation("RelationTo", fields: [toContractId], references: [id], onDelete: Cascade)
+
+  @@unique([fromContractId, toContractId, kind])
+  @@index([kind])
+}
+
+model TvlSnapshot {
+  id         String    @id @default(cuid())
+  contractId String?
+  protocolId String?
+  valueUsd   Float
+  source     TvlSource
+  sourceRef  String?
+  capturedAt DateTime  @default(now())
+  contract   Contract? @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  protocol   Protocol? @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, capturedAt])
+  @@index([protocolId, capturedAt])
+}

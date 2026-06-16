@@ -1,0 +1,26 @@
+{
+  "name": "smart-contracts-repository",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w @smart-contracts/api\" \"npm run dev -w @smart-contracts/web\"",
+    "dev:api": "npm run dev -w @smart-contracts/api",
+    "dev:web": "npm run dev -w @smart-contracts/web",
+    "build": "npm run build -w @smart-contracts/api && npm run build -w @smart-contracts/web",
+    "test": "npm run test -w @smart-contracts/api && npm run test -w @smart-contracts/web",
+    "prisma:generate": "npm run prisma:generate -w @smart-contracts/api",
+    "db:migrate": "npm run prisma:migrate -w @smart-contracts/api",
+    "db:seed": "npm run prisma:seed -w @smart-contracts/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
